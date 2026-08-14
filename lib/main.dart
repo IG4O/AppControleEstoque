@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
+import 'package:intl/date_symbol_data_local.dart';
+
+import 'presentation/screens/login_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
+  
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -20,11 +27,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Dona Guio - Clean Architecture com Riverpod'),
-        ),
-      ),
+      home: const LoginScreen(),
     );
   }
 }
