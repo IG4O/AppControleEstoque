@@ -18,6 +18,10 @@ final addProductUseCaseProvider = Provider<AddProductUseCase>((ref) {
   return AddProductUseCase(ref.watch(productRepositoryProvider));
 });
 
+final updateProductUseCaseProvider = Provider<UpdateProductUseCase>((ref) {
+  return UpdateProductUseCase(ref.watch(productRepositoryProvider));
+});
+
 final deleteProductUseCaseProvider = Provider<DeleteProductUseCase>((ref) {
   return DeleteProductUseCase(ref.watch(productRepositoryProvider));
 });
@@ -27,6 +31,7 @@ final productsProvider = StateNotifierProvider<ProductsNotifier, AsyncValue<List
   return ProductsNotifier(
     ref.watch(getProductsUseCaseProvider),
     ref.watch(addProductUseCaseProvider),
+    ref.watch(updateProductUseCaseProvider),
     ref.watch(deleteProductUseCaseProvider),
   );
 });
@@ -34,9 +39,10 @@ final productsProvider = StateNotifierProvider<ProductsNotifier, AsyncValue<List
 class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
   final GetProductsUseCase _getProducts;
   final AddProductUseCase _addProduct;
+  final UpdateProductUseCase _updateProduct;
   final DeleteProductUseCase _deleteProduct;
 
-  ProductsNotifier(this._getProducts, this._addProduct, this._deleteProduct) : super(const AsyncLoading()) {
+  ProductsNotifier(this._getProducts, this._addProduct, this._updateProduct, this._deleteProduct) : super(const AsyncLoading()) {
     loadProducts();
   }
 
@@ -54,6 +60,15 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     try {
       await _addProduct(product);
       await loadProducts(); // Recarrega a lista após adicionar
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateProduct(Product product) async {
+    try {
+      await _updateProduct(product);
+      await loadProducts(); // Recarrega a lista após atualizar
     } catch (e) {
       rethrow;
     }

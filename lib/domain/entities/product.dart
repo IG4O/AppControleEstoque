@@ -46,4 +46,26 @@ class Product {
       'marca': marca,
     };
   }
+
+  Product copyWith({
+    int? id,
+    String? nome,
+    int? quantidade,
+    String? usuario,
+    double? valor,
+    String? dataRegistro,
+    double? custo,
+    String? marca,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      nome: nome ?? this.nome,
+      quantidade: quantidade ?? this.quantidade,
+      usuario: usuario ?? this.usuario,
+      valor: valor ?? this.valor,
+      dataRegistro: dataRegistro ?? this.dataRegistro,
+      custo: custo ?? this.custo,
+      marca: marca ?? this.marca,
+    );
+  }
 }

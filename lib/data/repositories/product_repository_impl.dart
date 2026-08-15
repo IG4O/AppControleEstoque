@@ -18,6 +18,17 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
+  Future<void> updateProduct(Product product) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.update(
+      'produtos',
+      product.toMap(),
+      where: 'id = ?',
+      whereArgs: [product.id],
+    );
+  }
+
+  @override
   Future<void> deleteProduct(int id) async {
     final db = await DatabaseHelper.instance.database;
     await db.delete(

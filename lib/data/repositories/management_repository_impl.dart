@@ -7,32 +7,32 @@ class ManagementRepositoryImpl implements ManagementRepository {
   Future<FinancialSummary> getSummary(int month, int year) async {
     final db = await DatabaseHelper.instance.database;
 
-    // Filtro para o SQLite: formato YYYY-MM
     final monthStr = month.toString().padLeft(2, '0');
-    final yearMonth = '$year-$monthStr';
+    final startRange = '$year-$monthStr-01';
+    
+    // Calculates the start of the next month to do `date < next_month`
+    final nextMonthDate = DateTime(year, month + 1, 1);
+    final nextMonthStr = nextMonthDate.month.toString().padLeft(2, '0');
+    final nextYearStr = nextMonthDate.year.toString();
+    final endRange = '$nextYearStr-$nextMonthStr-01';
 
-    // 1. Faturamento Bruto e Custo dos Produtos Vendidos (COGS)
-    // Fazemos um JOIN da tabela vendas com produtos para pegar o custo atual do produto.
-    // (Em um sistema maior, o custo seria salvo na tabela de vendas no momento da venda,
-    // mas para simplificar, usaremos o custo atual do produto).
     final salesResult = await db.rawQuery('''
       SELECT 
         SUM(v.totalvenda) as faturamento,
         SUM(v.quantidade * p.custo) as cogs
       FROM vendas v
       JOIN produtos p ON v.idproduto = p.id
-      WHERE strftime('%Y-%m', v.data_venda) = ?
-    ''', [yearMonth]);
+      WHERE v.data_venda >= ? AND v.data_venda < ?
+    ''', [startRange, endRange]);
 
     final faturamentoBruto = (salesResult.first['faturamento'] as num?)?.toDouble() ?? 0.0;
     final cogs = (salesResult.first['cogs'] as num?)?.toDouble() ?? 0.0;
 
-    // 2. Despesas Adicionais (Tabela Gerenciamento)
     final expensesResult = await db.rawQuery('''
       SELECT SUM(valor) as despesas
       FROM gerenciamento
-      WHERE strftime('%Y-%m', data_gasto) = ?
-    ''', [yearMonth]);
+      WHERE data_gasto >= ? AND data_gasto < ?
+    ''', [startRange, endRange]);
 
     final despesas = (expensesResult.first['despesas'] as num?)?.toDouble() ?? 0.0;
 
@@ -48,12 +48,17 @@ class ManagementRepositoryImpl implements ManagementRepository {
     final db = await DatabaseHelper.instance.database;
     
     final monthStr = month.toString().padLeft(2, '0');
-    final yearMonth = '$year-$monthStr';
+    final startRange = '$year-$monthStr-01';
+    
+    final nextMonthDate = DateTime(year, month + 1, 1);
+    final nextMonthStr = nextMonthDate.month.toString().padLeft(2, '0');
+    final nextYearStr = nextMonthDate.year.toString();
+    final endRange = '$nextYearStr-$nextMonthStr-01';
 
     final maps = await db.query(
       'gerenciamento',
-      where: "strftime('%Y-%m', data_gasto) = ?",
-      whereArgs: [yearMonth],
+      where: "data_gasto >= ? AND data_gasto < ?",
+      whereArgs: [startRange, endRange],
       orderBy: 'id DESC',
     );
 
@@ -65,7 +70,12 @@ class ManagementRepositoryImpl implements ManagementRepository {
     final db = await DatabaseHelper.instance.database;
     
     final monthStr = month.toString().padLeft(2, '0');
-    final yearMonth = '$year-$monthStr';
+    final startRange = '$year-$monthStr-01';
+    
+    final nextMonthDate = DateTime(year, month + 1, 1);
+    final nextMonthStr = nextMonthDate.month.toString().padLeft(2, '0');
+    final nextYearStr = nextMonthDate.year.toString();
+    final endRange = '$nextYearStr-$nextMonthStr-01';
 
     final maps = await db.rawQuery('''
       SELECT 
@@ -74,12 +84,29 @@ class ManagementRepositoryImpl implements ManagementRepository {
         usuario,
         SUM(totalvenda) as total
       FROM vendas
-      WHERE strftime('%Y-%m', data_venda) = ?
+      WHERE data_venda >= ? AND data_venda < ?
       GROUP BY compra_id
       ORDER BY data_venda DESC
-    ''', [yearMonth]);
+    ''', [startRange, endRange]);
 
     return maps.map((map) => SaleTransaction.fromMap(map)).toList();
+  }
+
+  @override
+  Future<List<SaleItemDetail>> getSaleDetails(String compraId) async {
+    final db = await DatabaseHelper.instance.database;
+    final maps = await db.rawQuery('''
+      SELECT 
+        p.nome as produto_nome,
+        v.quantidade,
+        v.totalvenda,
+        v.desconto
+      FROM vendas v
+      INNER JOIN produtos p ON v.idproduto = p.id
+      WHERE v.compra_id = ?
+    ''', [compraId]);
+
+    return maps.map((map) => SaleItemDetail.fromMap(map)).toList();
   }
 
   @override

@@ -24,7 +24,17 @@ class GerenciamentoScreen extends ConsumerWidget {
           title: const Text('Dashboard Financeiro'),
           actions: [
             IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Atualizar',
+              onPressed: () {
+                ref.invalidate(financialSummaryProvider);
+                ref.invalidate(expensesProvider);
+                ref.invalidate(salesTransactionsProvider);
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.calendar_month),
+              tooltip: 'Filtrar Mês',
               onPressed: () => _selectMonth(context, ref, selectedDate),
             )
           ],
@@ -36,7 +46,7 @@ class GerenciamentoScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Text(
                 DateFormat('MMMM yyyy', 'pt_BR').format(selectedDate).toUpperCase(),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
               ),
             ),
             
@@ -58,10 +68,10 @@ class GerenciamentoScreen extends ConsumerWidget {
 
             const Divider(),
             
-            const TabBar(
-              labelColor: Colors.deepPurple,
+            TabBar(
+              labelColor: Theme.of(context).colorScheme.primary,
               unselectedLabelColor: Colors.grey,
-              tabs: [
+              tabs: const [
                 Tab(icon: Icon(Icons.money_off), text: 'Despesas'),
                 Tab(icon: Icon(Icons.point_of_sale), text: 'Vendas'),
               ],
@@ -72,7 +82,7 @@ class GerenciamentoScreen extends ConsumerWidget {
               child: TabBarView(
                 children: [
                   _buildExpensesTab(expensesAsync, currencyFormatter, ref),
-                  _buildSalesTab(salesAsync, currencyFormatter),
+                  _buildSalesTab(salesAsync, currencyFormatter, context),
                 ],
               ),
             ),
@@ -120,7 +130,7 @@ class GerenciamentoScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSalesTab(AsyncValue<List<SaleTransaction>> salesAsync, NumberFormat currencyFormatter) {
+  Widget _buildSalesTab(AsyncValue<List<SaleTransaction>> salesAsync, NumberFormat currencyFormatter, BuildContext context) {
     return salesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Erro: $err')),
@@ -131,15 +141,16 @@ class GerenciamentoScreen extends ConsumerWidget {
         return ListView.builder(
           itemCount: sales.length,
           itemBuilder: (context, index) {
-            final s = sales[index];
+            final sale = sales[index];
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: ListTile(
                 leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.shopping_cart_checkout, color: Colors.white)),
-                title: Text('Venda #${s.compraId.substring(0, 8)}...'),
-                subtitle: Text('Data: ${_formatDateTime(s.dataVenda)}\nVendedor: ${s.usuario}'),
+                title: Text('Venda #${sale.compraId.substring(0, 8)}...'),
+                subtitle: Text('Data: ${_formatDateTime(sale.dataVenda)}\nVendedor: ${sale.usuario}'),
                 isThreeLine: true,
-                trailing: Text(currencyFormatter.format(s.total), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
+                trailing: Text(currencyFormatter.format(sale.total), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
+                onTap: () => _showSaleDetailsModal(context, sale),
               ),
             );
           },
@@ -229,6 +240,127 @@ class GerenciamentoScreen extends ConsumerWidget {
       builder: (ctx) => _AddExpenseModal(ref: ref),
     );
   }
+
+  void _showSaleDetailsModal(BuildContext context, SaleTransaction sale) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return _SaleDetailsSheet(sale: sale);
+      },
+    );
+  }
+}
+
+class _SaleDetailsSheet extends ConsumerWidget {
+  final SaleTransaction sale;
+
+  const _SaleDetailsSheet({required this.sale});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailsAsyncValue = ref.watch(saleDetailsProvider(sale.compraId));
+    final currencyFormatter = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            Text(
+              'Detalhes da Venda #${sale.compraId.substring(0, 8)}',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text('Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(sale.dataVenda).toLocal())}'),
+            Text('Vendedor: ${sale.usuario}'),
+            const Divider(height: 32),
+            const Text(
+              'Itens Vendidos',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: detailsAsyncValue.when(
+                data: (items) {
+                  if (items.isEmpty) {
+                    return const Center(child: Text('Nenhum item encontrado.'));
+                  }
+                  return ListView.separated(
+                    itemCount: items.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(item.produtoNome, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(
+                          'Qtd: ${item.quantidade} | Desc: ${item.desconto.toStringAsFixed(0)}%',
+                        ),
+                        trailing: Text(
+                          currencyFormatter.format(item.totalVenda),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Erro: $err')),
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Total da Nota:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    currencyFormatter.format(sale.total),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fechar'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _AddExpenseModal extends StatefulWidget {
@@ -256,6 +388,7 @@ class _AddExpenseModalState extends State<_AddExpenseModal> {
         descricao: descricao,
         valor: valor,
         usuario: currentUser?.email,
+        dataGasto: DateTime.now().toUtc().subtract(const Duration(hours: 3)).toIso8601String(),
       );
 
       try {
@@ -287,14 +420,14 @@ class _AddExpenseModalState extends State<_AddExpenseModal> {
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Descrição (Ex: Conta de Luz)', border: OutlineInputBorder()),
                 validator: (v) => v == null || v.isEmpty ? 'Informe a descrição' : null,
-                onSaved: (v) => descricao = v!,
+                onSaved: (v) => descricao = v ?? '',
               ),
               const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Valor (R\$)', border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 validator: (v) => v == null || double.tryParse(v) == null ? 'Inválido' : null,
-                onSaved: (v) => valor = double.parse(v!),
+                onSaved: (v) => valor = double.parse(v ?? '0'),
               ),
               const SizedBox(height: 24),
               Row(

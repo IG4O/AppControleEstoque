@@ -23,6 +23,15 @@ class AddProductUseCase {
   }
 }
 
+class UpdateProductUseCase {
+  final ProductRepository repository;
+  UpdateProductUseCase(this.repository);
+
+  Future<void> call(Product product) async {
+    await repository.updateProduct(product);
+  }
+}
+
 class DeleteProductUseCase {
   final ProductRepository repository;
   DeleteProductUseCase(this.repository);

@@ -81,12 +81,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             UserAccountsDrawerHeader(
               accountName: Text(user.tipo),
               accountEmail: Text(user.email),
-              currentAccountPicture: const CircleAvatar(
+              currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 40, color: Colors.deepPurple),
+                child: Icon(Icons.person, size: 40, color: Theme.of(context).colorScheme.primary),
               ),
-              decoration: const BoxDecoration(
-                color: Colors.deepPurple,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             Expanded(

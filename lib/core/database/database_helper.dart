@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2, // Incrementamos a versão para forçar o onUpgrade
+      version: 3, // Incrementamos a versão para adicionar índices
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -34,6 +34,12 @@ class DatabaseHelper {
       await db.execute('DROP TABLE IF EXISTS produtos');
       await db.execute('DROP TABLE IF EXISTS usuarios');
       await _createDB(db, newVersion);
+    }
+    if (oldVersion < 3) {
+      // Otimização: Criando índices para acelerar consultas nas telas de Gerenciamento
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas (data_venda)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_vendas_compra_id ON vendas (compra_id)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_gerenciamento_data ON gerenciamento (data_gasto)');
     }
   }
 
@@ -106,6 +112,25 @@ class DatabaseHelper {
       'senha': '123456', // No futuro, é bom criptografar.
       'tipo': 'Admin',
     });
+
+    // Otimização: Cria os índices iniciais
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas (data_venda)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_vendas_compra_id ON vendas (compra_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_gerenciamento_data ON gerenciamento (data_gasto)');
+  }
+
+  Future<void> logGlobalError(String errorMsg) async {
+    try {
+      final db = await instance.database;
+      final spTime = DateTime.now().toUtc().subtract(const Duration(hours: 3)).toIso8601String();
+      await db.insert('logs', {
+        'usuario': 'SISTEMA',
+        'acao': '[ERRO] $errorMsg',
+        'data_log': spTime,
+      });
+    } catch (_) {
+      // Se falhar até para salvar o erro, apenas ignora para não causar loop
+    }
   }
 
   Future<void> close() async {

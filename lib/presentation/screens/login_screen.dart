@@ -13,12 +13,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -26,7 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       ref.read(authStateProvider.notifier).login(
-            _emailController.text,
+            _identifierController.text.trim(),
             _passwordController.text,
           );
     }
@@ -59,10 +59,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = authState is AsyncLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Entrar'),
-        centerTitle: true,
-      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -72,26 +68,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
-                  Icons.inventory_2_rounded,
-                  size: 80,
-                  color: Colors.deepPurple,
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'E-mail',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
+                const SizedBox(height: 40),
+                Center(
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.jpg',
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 40),
+                TextFormField(
+                  controller: _identifierController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome ou E-mail',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira o e-mail.';
-                    }
-                    if (!value.contains('@')) {
-                      return 'E-mail inválido.';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Por favor, insira o nome ou e-mail.';
                     }
                     return null;
                   },

@@ -7,6 +7,9 @@ class SaleRepositoryImpl implements SaleRepository {
   Future<void> registerSale(Sale sale) async {
     final db = await DatabaseHelper.instance.database;
 
+    // Horário de São Paulo (UTC-3)
+    final spTime = DateTime.now().toUtc().subtract(const Duration(hours: 3)).toIso8601String();
+
     // Inicia uma transação. Se der erro no meio, ele desfaz (rollback) tudo.
     await db.transaction((txn) async {
       for (var item in sale.items) {
@@ -18,6 +21,7 @@ class SaleRepositoryImpl implements SaleRepository {
           'totalvenda': item.subtotal,
           'desconto': item.descontoPercentual,
           'usuario': sale.usuario,
+          'data_venda': spTime,
         });
 
         // 2. Diminui o estoque
@@ -34,6 +38,7 @@ class SaleRepositoryImpl implements SaleRepository {
       await txn.insert('logs', {
         'usuario': sale.usuario,
         'acao': 'Registrou uma venda de R\$ ${sale.total.toStringAsFixed(2)}',
+        'data_log': spTime,
       });
     });
   }

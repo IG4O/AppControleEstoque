@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../providers/product_provider.dart';
 import '../providers/sale_provider.dart';
+import '../providers/management_provider.dart';
 
 class VendaScreen extends ConsumerStatefulWidget {
   const VendaScreen({super.key});
@@ -62,6 +63,10 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
       // Limpa o carrinho e recarrega produtos para atualizar o estoque
       ref.read(cartProvider.notifier).clearCart();
       ref.read(productsProvider.notifier).loadProducts();
+      
+      // Invalida o dashboard de gerenciamento para atualizar em tempo real
+      ref.invalidate(financialSummaryProvider);
+      ref.invalidate(salesTransactionsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +92,7 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ponto de Venda'),
+        toolbarHeight: 0,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -157,7 +162,7 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
                     )),
                     subtitle: Text('Estoque: ${p.quantidade} | ${formatter.format(p.valor)}'),
                     trailing: IconButton(
-                      icon: const Icon(Icons.add_shopping_cart, color: Colors.deepPurple),
+                      icon: Icon(Icons.add_shopping_cart, color: Theme.of(context).colorScheme.primary),
                       onPressed: outOfStock ? null : () {
                         ref.read(cartProvider.notifier).addProduct(p);
                         ScaffoldMessenger.of(context).clearSnackBars();
@@ -262,7 +267,7 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
           ),
         ),
         Container(
-          color: Colors.deepPurple.shade50,
+          color: Theme.of(context).colorScheme.surface,
           padding: const EdgeInsets.all(16),
           child: SafeArea(
             child: Row(
@@ -273,11 +278,11 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('Total:', style: TextStyle(fontSize: 16)),
-                    Text(formatter.format(total), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+                    Text(formatter.format(total), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
                   ],
                 ),
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+                  style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
                   icon: const Icon(Icons.check),
                   label: const Text('Confirmar Venda'),
                   onPressed: _finishSale,

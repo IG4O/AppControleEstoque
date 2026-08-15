@@ -48,3 +48,12 @@ class GetSalesTransactionsUseCase {
     return await repository.getSalesTransactions(month, year);
   }
 }
+
+class GetSaleDetailsUseCase {
+  final ManagementRepository repository;
+  GetSaleDetailsUseCase(this.repository);
+
+  Future<List<SaleItemDetail>> call(String compraId) async {
+    return await repository.getSaleDetails(compraId);
+  }
+}

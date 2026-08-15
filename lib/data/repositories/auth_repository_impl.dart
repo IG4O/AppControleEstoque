@@ -4,15 +4,15 @@ import '../../domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   @override
-  Future<User> login(String email, String password) async {
+  Future<User> login(String identifier, String password) async {
     final db = await DatabaseHelper.instance.database;
 
-    // Faz a consulta no SQLite
+    // Faz a consulta no SQLite (agora aceita nome ou e-mail)
     final maps = await db.query(
       'usuarios',
       columns: ['id', 'email', 'tipo'],
-      where: 'email = ? AND senha = ?',
-      whereArgs: [email, password],
+      where: '(email = ? OR nome = ?) AND senha = ?',
+      whereArgs: [identifier, identifier, password],
     );
 
     if (maps.isNotEmpty) {
@@ -23,7 +23,7 @@ class AuthRepositoryImpl implements AuthRepository {
         tipo: userData['tipo'] as String? ?? 'Marcia', // fallback
       );
     } else {
-      throw Exception('Email ou senha inválidos.');
+      throw Exception('Nome/E-mail ou senha inválidos.');
     }
   }
 }

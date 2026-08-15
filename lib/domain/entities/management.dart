@@ -24,13 +24,14 @@ class Expense {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'descricao': descricao,
       'valor': valor,
-      'data_gasto': dataGasto,
       'usuario': usuario,
     };
+    if (id != null) map['id'] = id;
+    if (dataGasto != null) map['data_gasto'] = dataGasto;
+    return map;
   }
 }
 
@@ -68,6 +69,29 @@ class SaleTransaction {
       dataVenda: map['data_venda'] as String,
       usuario: map['usuario'] as String? ?? 'Desconhecido',
       total: (map['total'] as num).toDouble(),
+    );
+  }
+}
+
+class SaleItemDetail {
+  final String produtoNome;
+  final int quantidade;
+  final double totalVenda;
+  final double desconto;
+
+  SaleItemDetail({
+    required this.produtoNome,
+    required this.quantidade,
+    required this.totalVenda,
+    required this.desconto,
+  });
+
+  factory SaleItemDetail.fromMap(Map<String, dynamic> map) {
+    return SaleItemDetail(
+      produtoNome: map['produto_nome'] as String,
+      quantidade: map['quantidade'] as int,
+      totalVenda: (map['totalvenda'] as num).toDouble(),
+      desconto: (map['desconto'] as num).toDouble(),
     );
   }
 }

@@ -21,7 +21,7 @@ class EstoqueScreen extends ConsumerWidget {
           // Cabeçalho de Total
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.deepPurple.shade50,
+            color: Theme.of(context).colorScheme.surface,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -31,10 +31,10 @@ class EstoqueScreen extends ConsumerWidget {
                 ),
                 Text(
                   currencyFormatter.format(totalStock),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -56,7 +56,10 @@ class EstoqueScreen extends ConsumerWidget {
                     final p = products[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      child: Padding(
+                      child: InkWell(
+                        onTap: () => _showEditProductDialog(context, ref, p),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,8 +104,9 @@ class EstoqueScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  );
+                },
                 );
               },
             ),
@@ -157,6 +161,13 @@ class EstoqueScreen extends ConsumerWidget {
       builder: (ctx) => _AddProductModal(ref: ref),
     );
   }
+
+  void _showEditProductDialog(BuildContext context, WidgetRef ref, Product product) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _EditProductModal(ref: ref, product: product),
+    );
+  }
 }
 
 class _AddProductModal extends StatefulWidget {
@@ -190,6 +201,7 @@ class _AddProductModalState extends State<_AddProductModal> {
         custo: custo,
         valor: valor,
         usuario: currentUser?.email,
+        dataRegistro: DateTime.now().toUtc().subtract(const Duration(hours: 3)).toIso8601String(),
       );
 
       try {
@@ -250,6 +262,141 @@ class _AddProductModalState extends State<_AddProductModal> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'Preço Venda', border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v == null || double.tryParse(v) == null ? 'Inválido' : null,
+                        onSaved: (v) => valor = double.parse(v!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: isLoading ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      onPressed: isLoading ? null : _submit,
+                      child: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salvar'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditProductModal extends StatefulWidget {
+  final WidgetRef ref;
+  final Product product;
+  const _EditProductModal({required this.ref, required this.product});
+
+  @override
+  State<_EditProductModal> createState() => _EditProductModalState();
+}
+
+class _EditProductModalState extends State<_EditProductModal> {
+  final _formKey = GlobalKey<FormState>();
+  late String nome;
+  late String marca;
+  late int quantidade;
+  late double custo;
+  late double valor;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nome = widget.product.nome;
+    marca = widget.product.marca ?? '';
+    quantidade = widget.product.quantidade;
+    custo = widget.product.custo;
+    valor = widget.product.valor;
+  }
+
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      setState(() => isLoading = true);
+
+      final updatedProduct = widget.product.copyWith(
+        nome: nome,
+        marca: marca.isEmpty ? '-' : marca,
+        quantidade: quantidade,
+        custo: custo,
+        valor: valor,
+      );
+
+      try {
+        await widget.ref.read(productsProvider.notifier).updateProduct(updatedProduct);
+        if (mounted) Navigator.of(context).pop();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
+        }
+      } finally {
+        if (mounted) setState(() => isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Editar Produto', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  initialValue: nome,
+                  decoration: const InputDecoration(labelText: 'Nome', border: OutlineInputBorder()),
+                  validator: (v) => v == null || v.isEmpty ? 'Informe o nome' : null,
+                  onSaved: (v) => nome = v!,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: marca == '-' ? '' : marca,
+                  decoration: const InputDecoration(labelText: 'Marca (Opcional)', border: OutlineInputBorder()),
+                  onSaved: (v) => marca = v ?? '',
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: quantidade.toString(),
+                  decoration: const InputDecoration(labelText: 'Quantidade', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v == null || int.tryParse(v) == null ? 'Inválido' : null,
+                  onSaved: (v) => quantidade = int.parse(v!),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: custo.toString(),
+                        decoration: const InputDecoration(labelText: 'Custo', border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v == null || double.tryParse(v) == null ? 'Inválido' : null,
+                        onSaved: (v) => custo = double.parse(v!),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: valor.toString(),
                         decoration: const InputDecoration(labelText: 'Preço Venda', border: OutlineInputBorder()),
                         keyboardType: TextInputType.number,
                         validator: (v) => v == null || double.tryParse(v) == null ? 'Inválido' : null,

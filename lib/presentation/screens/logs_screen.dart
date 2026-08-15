@@ -29,9 +29,9 @@ class LogsScreen extends ConsumerWidget {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.deepPurple,
-                    child: Icon(Icons.history, color: Colors.white),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: const Icon(Icons.history, color: Colors.white),
                   ),
                   title: Text(log.acao),
                   subtitle: Text('Usuário: ${log.usuario ?? 'Sistema'} \nData: ${_formatDate(log.dataLog)}'),

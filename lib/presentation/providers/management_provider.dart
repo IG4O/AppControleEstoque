@@ -29,6 +29,10 @@ final getSalesTransactionsUseCaseProvider = Provider<GetSalesTransactionsUseCase
   return GetSalesTransactionsUseCase(ref.watch(managementRepositoryProvider));
 });
 
+final getSaleDetailsUseCaseProvider = Provider<GetSaleDetailsUseCase>((ref) {
+  return GetSaleDetailsUseCase(ref.watch(managementRepositoryProvider));
+});
+
 // Provedor para gerenciar o Mês/Ano selecionado (padrão: mês atual)
 final selectedMonthProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();
@@ -47,6 +51,12 @@ final salesTransactionsProvider = FutureProvider<List<SaleTransaction>>((ref) as
   final date = ref.watch(selectedMonthProvider);
   final useCase = ref.watch(getSalesTransactionsUseCaseProvider);
   return await useCase(date.month, date.year);
+});
+
+// Provedor para carregar os detalhes de uma Venda Específica
+final saleDetailsProvider = FutureProvider.family<List<SaleItemDetail>, String>((ref, compraId) async {
+  final useCase = ref.watch(getSaleDetailsUseCaseProvider);
+  return await useCase(compraId);
 });
 
 // Provedor para gerenciar a lista de Despesas
