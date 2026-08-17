@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/product_provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/management_provider.dart';
+import '../../domain/entities/sale.dart';
 
 class VendaScreen extends ConsumerStatefulWidget {
   const VendaScreen({super.key});
@@ -95,6 +96,9 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
         toolbarHeight: 0,
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: [
             const Tab(icon: Icon(Icons.list), text: 'Produtos'),
             Tab(
@@ -155,25 +159,62 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
                   final p = filtered[index];
                   final outOfStock = p.quantidade <= 0;
 
-                  return ListTile(
-                    title: Text(p.nome, style: TextStyle(
-                      color: outOfStock ? Colors.grey : Colors.black,
-                      decoration: outOfStock ? TextDecoration.lineThrough : null,
-                    )),
-                    subtitle: Text('Estoque: ${p.quantidade} | ${formatter.format(p.valor)}'),
-                    trailing: IconButton(
-                      icon: Icon(Icons.add_shopping_cart, color: Theme.of(context).colorScheme.primary),
-                      onPressed: outOfStock ? null : () {
-                        ref.read(cartProvider.notifier).addProduct(p);
-                        ScaffoldMessenger.of(context).clearSnackBars();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${p.nome} adicionado.'), duration: const Duration(seconds: 1)),
-                        );
-                      },
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    elevation: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(p.nome, style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: outOfStock ? Colors.grey : Colors.black,
+                                  decoration: outOfStock ? TextDecoration.lineThrough : null,
+                                )),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: outOfStock ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Estoque: ${p.quantidade}',
+                                        style: TextStyle(
+                                          color: outOfStock ? Colors.red : Colors.green[800],
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(formatter.format(p.valor), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_shopping_cart),
+                            color: Theme.of(context).colorScheme.primary,
+                            onPressed: outOfStock ? null : () {
+                              ref.read(cartProvider.notifier).addProduct(p);
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('${p.nome} adicionado.'), duration: const Duration(seconds: 1)),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    onTap: outOfStock ? null : () {
-                      ref.read(cartProvider.notifier).addProduct(p);
-                    },
                   );
                 },
               );
@@ -196,73 +237,7 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
             itemCount: cart.length,
             itemBuilder: (ctx, index) {
               final item = cart[index];
-              return Card(
-                margin: const EdgeInsets.all(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(child: Text(item.product.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: () => ref.read(cartProvider.notifier).removeProduct(item.product.id!),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          const Text('Qtd: '),
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: item.quantidade > 1 
-                              ? () => ref.read(cartProvider.notifier).updateItemQuantity(item.product.id!, item.quantidade - 1)
-                              : null,
-                          ),
-                          Text('${item.quantidade}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: item.quantidade < item.product.quantidade
-                              ? () => ref.read(cartProvider.notifier).updateItemQuantity(item.product.id!, item.quantidade + 1)
-                              : null,
-                          ),
-                          const Spacer(),
-                          Text('Sub: ${formatter.format(item.subtotal)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'Desconto %', isDense: true),
-                              onChanged: (val) {
-                                final d = double.tryParse(val) ?? 0.0;
-                                ref.read(cartProvider.notifier).updateItemDiscount(item.product.id!, d);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: TextField(
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'Preço Venda', isDense: true),
-                              controller: TextEditingController(text: item.precoVendaEditado.toStringAsFixed(2))..selection = TextSelection.collapsed(offset: item.precoVendaEditado.toStringAsFixed(2).length),
-                              onChanged: (val) {
-                                final p = double.tryParse(val) ?? item.product.valor;
-                                ref.read(cartProvider.notifier).updateItemPrice(item.product.id!, p);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return CartItemWidget(item: item, formatter: formatter);
             },
           ),
         ),
@@ -292,6 +267,169 @@ class _VendaScreenState extends ConsumerState<VendaScreen> with SingleTickerProv
           ),
         ),
       ],
+    );
+  }
+}
+
+class CartItemWidget extends ConsumerStatefulWidget {
+  final SaleItem item;
+  final NumberFormat formatter;
+
+  const CartItemWidget({super.key, required this.item, required this.formatter});
+
+  @override
+  ConsumerState<CartItemWidget> createState() => _CartItemWidgetState();
+}
+
+class _CartItemWidgetState extends ConsumerState<CartItemWidget> {
+  late TextEditingController _discountController;
+  late TextEditingController _finalPriceController;
+  final FocusNode _discountFocus = FocusNode();
+  final FocusNode _finalPriceFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _discountController = TextEditingController(text: widget.item.descontoPercentual > 0 ? widget.item.descontoPercentual.toStringAsFixed(1) : '');
+    _finalPriceController = TextEditingController(text: widget.item.precoUnidadeFinal.toStringAsFixed(2));
+  }
+
+  @override
+  void didUpdateWidget(CartItemWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Se mudou externamente (ex: o usuário digitou no outro campo ou trocou a chave de prazo)
+    if (widget.item.descontoPercentual != oldWidget.item.descontoPercentual && !_discountFocus.hasFocus) {
+       _discountController.text = widget.item.descontoPercentual > 0 ? widget.item.descontoPercentual.toStringAsFixed(1) : '';
+    }
+    if (widget.item.precoUnidadeFinal != oldWidget.item.precoUnidadeFinal && !_finalPriceFocus.hasFocus) {
+       _finalPriceController.text = widget.item.precoUnidadeFinal.toStringAsFixed(2);
+    }
+  }
+
+  @override
+  void dispose() {
+    _discountFocus.dispose();
+    _finalPriceFocus.dispose();
+    _discountController.dispose();
+    _finalPriceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final formatter = widget.formatter;
+
+    return Card(
+      margin: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text(item.product.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () => ref.read(cartProvider.notifier).removeProduct(item.product.id!),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Text('Qtd: '),
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline),
+                  onPressed: item.quantidade > 1 
+                    ? () => ref.read(cartProvider.notifier).updateItemQuantity(item.product.id!, item.quantidade - 1)
+                    : null,
+                ),
+                Text('${item.quantidade}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  onPressed: item.quantidade < item.product.quantidade
+                    ? () => ref.read(cartProvider.notifier).updateItemQuantity(item.product.id!, item.quantidade + 1)
+                    : null,
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Sub: ${formatter.format(item.subtotal)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    if (item.isPrazo && item.parcelas > 1)
+                      Text('${item.parcelas}x de ${formatter.format(item.valorParcela)}', style: const TextStyle(fontSize: 12, color: Colors.blue)),
+                  ],
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Text('Tipo: '),
+                Switch(
+                  value: item.isPrazo,
+                  onChanged: (val) {
+                    ref.read(cartProvider.notifier).toggleItemPrazo(item.product.id!, val);
+                  },
+                ),
+                Text(item.isPrazo ? 'A Prazo' : 'À Vista', style: TextStyle(fontWeight: FontWeight.bold, color: item.isPrazo ? Colors.blue : Colors.green)),
+                if (item.isPrazo) ...[
+                  const SizedBox(width: 8),
+                  const Text('Parc: '),
+                  DropdownButton<int>(
+                    value: item.parcelas,
+                    isDense: true,
+                    items: List.generate(12, (index) => index + 1).map((p) {
+                      return DropdownMenuItem(value: p, child: Text('${p}x'));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(cartProvider.notifier).updateItemParcelas(item.product.id!, val);
+                      }
+                    },
+                  ),
+                ] else ...[
+                  const Spacer(),
+                  Text('Preço Base: ${formatter.format(item.precoVendaEditado)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    focusNode: _discountFocus,
+                    controller: _discountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Desconto %', isDense: true),
+                    onChanged: (val) {
+                      final d = double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
+                      ref.read(cartProvider.notifier).updateItemDiscount(item.product.id!, d);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    focusNode: _finalPriceFocus,
+                    controller: _finalPriceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Valor Final Un.', isDense: true),
+                    onChanged: (val) {
+                      // Se o usuário apagar tudo, consideramos 0 para evitar quebra, mas preferencialmente aguardamos nova digitação
+                      if (val.trim().isEmpty) return;
+                      final p = double.tryParse(val.replaceAll(',', '.')) ?? item.precoUnidadeFinal;
+                      ref.read(cartProvider.notifier).updateItemFinalPrice(item.product.id!, p);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

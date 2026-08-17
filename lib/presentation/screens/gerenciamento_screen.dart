@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -6,13 +7,26 @@ import '../../domain/entities/management.dart';
 import '../providers/auth_provider.dart';
 import '../providers/management_provider.dart';
 
-class GerenciamentoScreen extends ConsumerWidget {
+class GerenciamentoScreen extends ConsumerStatefulWidget {
   const GerenciamentoScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GerenciamentoScreen> createState() => _GerenciamentoScreenState();
+}
+
+class _GerenciamentoScreenState extends ConsumerState<GerenciamentoScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(financialSummaryProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-    final selectedDate = ref.watch(selectedMonthProvider);
+    final dateRange = ref.watch(dateRangeProvider);
     final summaryAsync = ref.watch(financialSummaryProvider);
     final expensesAsync = ref.watch(expensesProvider);
     final salesAsync = ref.watch(salesTransactionsProvider);
@@ -34,35 +48,38 @@ class GerenciamentoScreen extends ConsumerWidget {
             ),
             IconButton(
               icon: const Icon(Icons.calendar_month),
-              tooltip: 'Filtrar Mês',
-              onPressed: () => _selectMonth(context, ref, selectedDate),
+              tooltip: 'Filtrar Período',
+              onPressed: () => _selectDateRange(context, ref, dateRange),
             )
           ],
         ),
         body: Column(
           children: [
-            // TOPO: Mês Selecionado
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Text(
-                DateFormat('MMMM yyyy', 'pt_BR').format(selectedDate).toUpperCase(),
+                '${DateFormat('dd/MM/yyyy').format(dateRange.start)} - ${DateFormat('dd/MM/yyyy').format(dateRange.end)}',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
               ),
             ),
             
-            // TOPO: Cartões de Resumo Financeiro
             summaryAsync.when(
               loading: () => const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()),
               error: (err, stack) => Padding(padding: const EdgeInsets.all(16.0), child: Text('Erro: $err')),
-              data: (summary) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Row(
-                  children: [
-                    Expanded(child: _buildSummaryCard('Faturamento', summary.faturamentoBruto, Colors.blue, currencyFormatter)),
-                    Expanded(child: _buildSummaryCard('Gastos + COGS', summary.despesasAdicionais + summary.custoProdutosVendidos, Colors.red, currencyFormatter)),
-                    Expanded(child: _buildSummaryCard('Lucro Líquido', summary.lucroLiquido, summary.lucroLiquido >= 0 ? Colors.green : Colors.orange, currencyFormatter)),
-                  ],
-                ),
+              data: (summary) => Column(
+                children: [
+                  _buildPieChart(summary),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSummaryCard('Faturamento', summary.faturamentoBruto, Colors.blue, currencyFormatter)),
+                        Expanded(child: _buildSummaryCard('Gastos + COGS', summary.despesasAdicionais + summary.custoProdutosVendidos, Colors.red, currencyFormatter)),
+                        Expanded(child: _buildSummaryCard('Lucro Líquido', summary.lucroLiquido, summary.lucroLiquido >= 0 ? Colors.green : Colors.orange, currencyFormatter)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -159,6 +176,47 @@ class GerenciamentoScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildPieChart(FinancialSummary summary) {
+    if (summary.faturamentoBruto <= 0) return const SizedBox.shrink();
+
+    final lucro = summary.lucroLiquido > 0 ? summary.lucroLiquido : 0.0;
+    final gastos = summary.despesasAdicionais + summary.custoProdutosVendidos;
+    final total = lucro + gastos;
+
+    if (total <= 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: SizedBox(
+        height: 120,
+        child: PieChart(
+          PieChartData(
+            sectionsSpace: 2,
+            centerSpaceRadius: 30,
+            sections: [
+              if (gastos > 0)
+                PieChartSectionData(
+                  color: Colors.red,
+                  value: gastos,
+                  title: '${(gastos / total * 100).toStringAsFixed(0)}%',
+                  radius: 40,
+                  titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              if (lucro > 0)
+                PieChartSectionData(
+                  color: Colors.green,
+                  value: lucro,
+                  title: '${(lucro / total * 100).toStringAsFixed(0)}%',
+                  radius: 40,
+                  titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSummaryCard(String title, double value, Color color, NumberFormat formatter) {
     return Card(
       elevation: 2,
@@ -197,17 +255,18 @@ class GerenciamentoScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _selectMonth(BuildContext context, WidgetRef ref, DateTime initialDate) async {
-    // Para simplificar, usamos o DatePicker nativo restrito ao dia 1
-    final DateTime? picked = await showDatePicker(
+  Future<void> _selectDateRange(BuildContext context, WidgetRef ref, DateTimeRange initialRange) async {
+    final DateTimeRange? picked = await showDateRangePicker(
       context: context,
-      initialDate: initialDate,
+      initialDateRange: initialRange,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
-      helpText: 'Selecione qualquer dia do mês desejado',
+      helpText: 'Selecione o período',
     );
     if (picked != null) {
-      ref.read(selectedMonthProvider.notifier).state = DateTime(picked.year, picked.month);
+      // Ajustar end para 23:59:59 para pegar o dia inteiro
+      final adjustedEnd = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+      ref.read(dateRangeProvider.notifier).state = DateTimeRange(start: picked.start, end: adjustedEnd);
     }
   }
 
@@ -316,8 +375,16 @@ class _SaleDetailsSheet extends ConsumerWidget {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(item.produtoNome, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          'Qtd: ${item.quantidade} | Desc: ${item.desconto.toStringAsFixed(0)}%',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Qtd: ${item.quantidade} | Un: ${currencyFormatter.format(item.valorUnitario)} | Desc: ${item.desconto.toStringAsFixed(0)}%'),
+                            if (item.isPrazo)
+                              Text(
+                                'A Prazo (${item.parcelas}x)', 
+                                style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                          ],
                         ),
                         trailing: Text(
                           currencyFormatter.format(item.totalVenda),

@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // Incrementamos a versão para adicionar índices
+      version: 5, // Incrementamos a versão para adicionar is_prazo, parcelas e valor_unitario
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -40,6 +40,16 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas (data_venda)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_vendas_compra_id ON vendas (compra_id)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_gerenciamento_data ON gerenciamento (data_gasto)');
+    }
+    if (oldVersion < 4) {
+      // Nova funcionalidade: Preço a prazo
+      await db.execute('ALTER TABLE produtos ADD COLUMN valor_prazo REAL DEFAULT 0');
+    }
+    if (oldVersion < 5) {
+      // Campos adicionais para registrar detalhes da venda
+      await db.execute('ALTER TABLE vendas ADD COLUMN is_prazo INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE vendas ADD COLUMN parcelas INTEGER DEFAULT 1');
+      await db.execute('ALTER TABLE vendas ADD COLUMN valor_unitario REAL DEFAULT 0');
     }
   }
 
@@ -65,7 +75,8 @@ class DatabaseHelper {
         valor REAL DEFAULT 0,
         dataregistro TEXT DEFAULT CURRENT_TIMESTAMP,
         custo REAL DEFAULT 0,
-        marca TEXT
+        marca TEXT,
+        valor_prazo REAL DEFAULT 0
       )
     ''');
 
@@ -78,6 +89,9 @@ class DatabaseHelper {
         quantidade INTEGER NOT NULL,
         totalvenda REAL NOT NULL,
         desconto REAL DEFAULT 0,
+        is_prazo INTEGER DEFAULT 0,
+        parcelas INTEGER DEFAULT 1,
+        valor_unitario REAL DEFAULT 0,
         usuario TEXT,
         data_venda TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (idproduto) REFERENCES produtos (id) ON DELETE CASCADE

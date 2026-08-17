@@ -17,6 +17,7 @@ dependencies:
   json_annotation: ^4.8.1
   intl: ^0.20.3
   uuid: ^4.6.0
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:

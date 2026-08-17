@@ -20,6 +20,9 @@ class SaleRepositoryImpl implements SaleRepository {
           'quantidade': item.quantidade,
           'totalvenda': item.subtotal,
           'desconto': item.descontoPercentual,
+          'is_prazo': item.isPrazo ? 1 : 0,
+          'parcelas': item.parcelas,
+          'valor_unitario': item.precoUnidadeFinal,
           'usuario': sale.usuario,
           'data_venda': spTime,
         });

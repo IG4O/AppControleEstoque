@@ -5,8 +5,8 @@ class GetFinancialSummaryUseCase {
   final ManagementRepository repository;
   GetFinancialSummaryUseCase(this.repository);
 
-  Future<FinancialSummary> call(int month, int year) async {
-    return await repository.getSummary(month, year);
+  Future<FinancialSummary> call(DateTime start, DateTime end) async {
+    return await repository.getSummary(start, end);
   }
 }
 
@@ -14,8 +14,8 @@ class GetExpensesUseCase {
   final ManagementRepository repository;
   GetExpensesUseCase(this.repository);
 
-  Future<List<Expense>> call(int month, int year) async {
-    return await repository.getExpenses(month, year);
+  Future<List<Expense>> call(DateTime start, DateTime end) async {
+    return await repository.getExpenses(start, end);
   }
 }
 
@@ -44,8 +44,8 @@ class GetSalesTransactionsUseCase {
   final ManagementRepository repository;
   GetSalesTransactionsUseCase(this.repository);
 
-  Future<List<SaleTransaction>> call(int month, int year) async {
-    return await repository.getSalesTransactions(month, year);
+  Future<List<SaleTransaction>> call(DateTime start, DateTime end) async {
+    return await repository.getSalesTransactions(start, end);
   }
 }
 

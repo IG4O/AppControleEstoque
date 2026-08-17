@@ -38,6 +38,8 @@ class CartNotifier extends StateNotifier<List<SaleItem>> {
             quantidade: 1,
             descontoPercentual: 0.0,
             precoVendaEditado: product.valor,
+            isPrazo: false,
+            parcelas: 1,
           )
         ];
       }
@@ -51,12 +53,7 @@ class CartNotifier extends StateNotifier<List<SaleItem>> {
   void updateItemQuantity(int productId, int newQuantity) {
     state = state.map((item) {
       if (item.product.id == productId) {
-        return SaleItem(
-          product: item.product,
-          quantidade: newQuantity,
-          descontoPercentual: item.descontoPercentual,
-          precoVendaEditado: item.precoVendaEditado,
-        );
+        return item.copyWith(quantidade: newQuantity);
       }
       return item;
     }).toList();
@@ -65,26 +62,44 @@ class CartNotifier extends StateNotifier<List<SaleItem>> {
   void updateItemDiscount(int productId, double newDiscount) {
     state = state.map((item) {
       if (item.product.id == productId) {
-        return SaleItem(
-          product: item.product,
-          quantidade: item.quantidade,
-          descontoPercentual: newDiscount,
-          precoVendaEditado: item.precoVendaEditado,
+        return item.copyWith(descontoPercentual: newDiscount);
+      }
+      return item;
+    }).toList();
+  }
+
+  void updateItemFinalPrice(int productId, double finalPrice) {
+    state = state.map((item) {
+      if (item.product.id == productId) {
+        // Se o usuário digitou o valor final, calculamos qual é o desconto equivalente
+        final basePrice = item.precoVendaEditado;
+        if (basePrice <= 0) return item;
+        
+        final calculatedDiscount = ((basePrice - finalPrice) / basePrice) * 100;
+        return item.copyWith(descontoPercentual: calculatedDiscount);
+      }
+      return item;
+    }).toList();
+  }
+
+  void toggleItemPrazo(int productId, bool isPrazo) {
+    state = state.map((item) {
+      if (item.product.id == productId) {
+        final newBasePrice = isPrazo ? item.product.valorPrazo : item.product.valor;
+        return item.copyWith(
+          isPrazo: isPrazo,
+          precoVendaEditado: newBasePrice,
+          parcelas: isPrazo ? item.parcelas : 1, // reseta para 1 se for a vista
         );
       }
       return item;
     }).toList();
   }
 
-  void updateItemPrice(int productId, double newPrice) {
+  void updateItemParcelas(int productId, int parcelas) {
     state = state.map((item) {
       if (item.product.id == productId) {
-        return SaleItem(
-          product: item.product,
-          quantidade: item.quantidade,
-          descontoPercentual: item.descontoPercentual,
-          precoVendaEditado: newPrice,
-        );
+        return item.copyWith(parcelas: parcelas);
       }
       return item;
     }).toList();

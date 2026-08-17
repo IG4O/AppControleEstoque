@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/management_repository_impl.dart';
@@ -33,24 +34,26 @@ final getSaleDetailsUseCaseProvider = Provider<GetSaleDetailsUseCase>((ref) {
   return GetSaleDetailsUseCase(ref.watch(managementRepositoryProvider));
 });
 
-// Provedor para gerenciar o Mês/Ano selecionado (padrão: mês atual)
-final selectedMonthProvider = StateProvider<DateTime>((ref) {
+// Provedor para gerenciar o período selecionado (padrão: mês atual)
+final dateRangeProvider = StateProvider<DateTimeRange>((ref) {
   final now = DateTime.now();
-  return DateTime(now.year, now.month);
+  final start = DateTime(now.year, now.month, 1);
+  final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+  return DateTimeRange(start: start, end: end);
 });
 
 // Provedor para carregar o Resumo Financeiro
 final financialSummaryProvider = FutureProvider<FinancialSummary>((ref) async {
-  final date = ref.watch(selectedMonthProvider);
+  final range = ref.watch(dateRangeProvider);
   final useCase = ref.watch(getFinancialSummaryUseCaseProvider);
-  return await useCase(date.month, date.year);
+  return await useCase(range.start, range.end);
 });
 
-// Provedor para carregar as Vendas do mês (Relatório)
+// Provedor para carregar as Vendas do período
 final salesTransactionsProvider = FutureProvider<List<SaleTransaction>>((ref) async {
-  final date = ref.watch(selectedMonthProvider);
+  final range = ref.watch(dateRangeProvider);
   final useCase = ref.watch(getSalesTransactionsUseCaseProvider);
-  return await useCase(date.month, date.year);
+  return await useCase(range.start, range.end);
 });
 
 // Provedor para carregar os detalhes de uma Venda Específica
@@ -61,13 +64,13 @@ final saleDetailsProvider = FutureProvider.family<List<SaleItemDetail>, String>(
 
 // Provedor para gerenciar a lista de Despesas
 final expensesProvider = StateNotifierProvider<ExpensesNotifier, AsyncValue<List<Expense>>>((ref) {
-  final date = ref.watch(selectedMonthProvider);
+  final range = ref.watch(dateRangeProvider);
   return ExpensesNotifier(
     ref.watch(getExpensesUseCaseProvider),
     ref.watch(addExpenseUseCaseProvider),
     ref.watch(deleteExpenseUseCaseProvider),
-    date.month,
-    date.year,
+    range.start,
+    range.end,
     ref,
   );
 });
@@ -76,16 +79,16 @@ class ExpensesNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
   final GetExpensesUseCase _getExpenses;
   final AddExpenseUseCase _addExpense;
   final DeleteExpenseUseCase _deleteExpense;
-  final int month;
-  final int year;
+  final DateTime start;
+  final DateTime end;
   final Ref ref;
 
   ExpensesNotifier(
     this._getExpenses, 
     this._addExpense, 
     this._deleteExpense, 
-    this.month, 
-    this.year,
+    this.start, 
+    this.end,
     this.ref,
   ) : super(const AsyncLoading()) {
     loadExpenses();
@@ -94,7 +97,7 @@ class ExpensesNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
   Future<void> loadExpenses() async {
     state = const AsyncLoading();
     try {
-      final expenses = await _getExpenses(month, year);
+      final expenses = await _getExpenses(start, end);
       state = AsyncData(expenses);
     } catch (e, st) {
       state = AsyncError(e, st);

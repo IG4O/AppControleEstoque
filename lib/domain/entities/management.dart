@@ -78,12 +78,18 @@ class SaleItemDetail {
   final int quantidade;
   final double totalVenda;
   final double desconto;
+  final bool isPrazo;
+  final int parcelas;
+  final double valorUnitario;
 
   SaleItemDetail({
     required this.produtoNome,
     required this.quantidade,
     required this.totalVenda,
     required this.desconto,
+    required this.isPrazo,
+    required this.parcelas,
+    required this.valorUnitario,
   });
 
   factory SaleItemDetail.fromMap(Map<String, dynamic> map) {
@@ -92,6 +98,9 @@ class SaleItemDetail {
       quantidade: map['quantidade'] as int,
       totalVenda: (map['totalvenda'] as num).toDouble(),
       desconto: (map['desconto'] as num).toDouble(),
+      isPrazo: (map['is_prazo'] as int? ?? 0) == 1,
+      parcelas: map['parcelas'] as int? ?? 1,
+      valorUnitario: (map['valor_unitario'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

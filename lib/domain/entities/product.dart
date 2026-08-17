@@ -4,6 +4,7 @@ class Product {
   final int quantidade;
   final String? usuario;
   final double valor;
+  final double valorPrazo;
   final String? dataRegistro;
   final double custo;
   final String? marca;
@@ -14,6 +15,7 @@ class Product {
     required this.quantidade,
     this.usuario,
     required this.valor,
+    this.valorPrazo = 0.0,
     this.dataRegistro,
     required this.custo,
     this.marca,
@@ -27,6 +29,7 @@ class Product {
       quantidade: map['quantidade'] as int,
       usuario: map['usuario'] as String?,
       valor: (map['valor'] as num).toDouble(),
+      valorPrazo: (map['valor_prazo'] as num?)?.toDouble() ?? 0.0,
       dataRegistro: map['dataregistro'] as String?,
       custo: (map['custo'] as num).toDouble(),
       marca: map['marca'] as String?,
@@ -41,6 +44,7 @@ class Product {
       'quantidade': quantidade,
       'usuario': usuario,
       'valor': valor,
+      'valor_prazo': valorPrazo,
       'dataregistro': dataRegistro,
       'custo': custo,
       'marca': marca,
@@ -53,6 +57,7 @@ class Product {
     int? quantidade,
     String? usuario,
     double? valor,
+    double? valorPrazo,
     String? dataRegistro,
     double? custo,
     String? marca,
@@ -63,6 +68,7 @@ class Product {
       quantidade: quantidade ?? this.quantidade,
       usuario: usuario ?? this.usuario,
       valor: valor ?? this.valor,
+      valorPrazo: valorPrazo ?? this.valorPrazo,
       dataRegistro: dataRegistro ?? this.dataRegistro,
       custo: custo ?? this.custo,
       marca: marca ?? this.marca,

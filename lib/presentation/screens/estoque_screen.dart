@@ -90,9 +90,19 @@ class EstoqueScreen extends ConsumerWidget {
                               children: [
                                 Text('Qtd: ${p.quantidade}'),
                                 Text('Custo: ${currencyFormatter.format(p.custo)}'),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
                                 Text(
                                   'Venda: ${currencyFormatter.format(p.valor)}',
                                   style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                                ),
+                                Text(
+                                  'Prazo: ${currencyFormatter.format(p.valorPrazo)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                                 ),
                               ],
                             ),
@@ -185,6 +195,7 @@ class _AddProductModalState extends State<_AddProductModal> {
   int quantidade = 0;
   double custo = 0.0;
   double valor = 0.0;
+  double valorPrazo = 0.0;
   bool isLoading = false;
 
   void _submit() async {
@@ -200,6 +211,7 @@ class _AddProductModalState extends State<_AddProductModal> {
         quantidade: quantidade,
         custo: custo,
         valor: valor,
+        valorPrazo: valorPrazo,
         usuario: currentUser?.email,
         dataRegistro: DateTime.now().toUtc().subtract(const Duration(hours: 3)).toIso8601String(),
       );
@@ -270,6 +282,13 @@ class _AddProductModalState extends State<_AddProductModal> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Preço a Prazo', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v == null || double.tryParse(v) == null ? 'Inválido' : null,
+                  onSaved: (v) => valorPrazo = double.parse(v!),
+                ),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -309,6 +328,7 @@ class _EditProductModalState extends State<_EditProductModal> {
   late int quantidade;
   late double custo;
   late double valor;
+  late double valorPrazo;
   bool isLoading = false;
 
   @override
@@ -319,6 +339,7 @@ class _EditProductModalState extends State<_EditProductModal> {
     quantidade = widget.product.quantidade;
     custo = widget.product.custo;
     valor = widget.product.valor;
+    valorPrazo = widget.product.valorPrazo;
   }
 
   void _submit() async {
@@ -332,6 +353,7 @@ class _EditProductModalState extends State<_EditProductModal> {
         quantidade: quantidade,
         custo: custo,
         valor: valor,
+        valorPrazo: valorPrazo,
       );
 
       try {
@@ -404,6 +426,14 @@ class _EditProductModalState extends State<_EditProductModal> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: valorPrazo.toString(),
+                  decoration: const InputDecoration(labelText: 'Preço a Prazo', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v == null || double.tryParse(v) == null ? 'Inválido' : null,
+                  onSaved: (v) => valorPrazo = double.parse(v!),
                 ),
                 const SizedBox(height: 24),
                 Row(

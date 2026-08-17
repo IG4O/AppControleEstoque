@@ -70,12 +70,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
                 Center(
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/logo.jpg',
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.cover,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE4C09A), width: 4), // Borda dourada
+                    ),
+                    child: ClipOval(
+                      child: Transform.scale(
+                        scale: 1.05, // Zoom para esconder possível borda preta da imagem
+                        child: Image.asset(
+                          'assets/images/logo.jpg',
+                          width: 192,
+                          height: 192,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
                 ),

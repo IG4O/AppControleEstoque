@@ -4,17 +4,11 @@ import '../../domain/repositories/management_repository.dart';
 
 class ManagementRepositoryImpl implements ManagementRepository {
   @override
-  Future<FinancialSummary> getSummary(int month, int year) async {
+  Future<FinancialSummary> getSummary(DateTime start, DateTime end) async {
     final db = await DatabaseHelper.instance.database;
 
-    final monthStr = month.toString().padLeft(2, '0');
-    final startRange = '$year-$monthStr-01';
-    
-    // Calculates the start of the next month to do `date < next_month`
-    final nextMonthDate = DateTime(year, month + 1, 1);
-    final nextMonthStr = nextMonthDate.month.toString().padLeft(2, '0');
-    final nextYearStr = nextMonthDate.year.toString();
-    final endRange = '$nextYearStr-$nextMonthStr-01';
+    final startRange = start.toIso8601String();
+    final endRange = end.toIso8601String();
 
     final salesResult = await db.rawQuery('''
       SELECT 
@@ -44,16 +38,11 @@ class ManagementRepositoryImpl implements ManagementRepository {
   }
 
   @override
-  Future<List<Expense>> getExpenses(int month, int year) async {
+  Future<List<Expense>> getExpenses(DateTime start, DateTime end) async {
     final db = await DatabaseHelper.instance.database;
     
-    final monthStr = month.toString().padLeft(2, '0');
-    final startRange = '$year-$monthStr-01';
-    
-    final nextMonthDate = DateTime(year, month + 1, 1);
-    final nextMonthStr = nextMonthDate.month.toString().padLeft(2, '0');
-    final nextYearStr = nextMonthDate.year.toString();
-    final endRange = '$nextYearStr-$nextMonthStr-01';
+    final startRange = start.toIso8601String();
+    final endRange = end.toIso8601String();
 
     final maps = await db.query(
       'gerenciamento',
@@ -66,16 +55,11 @@ class ManagementRepositoryImpl implements ManagementRepository {
   }
 
   @override
-  Future<List<SaleTransaction>> getSalesTransactions(int month, int year) async {
+  Future<List<SaleTransaction>> getSalesTransactions(DateTime start, DateTime end) async {
     final db = await DatabaseHelper.instance.database;
     
-    final monthStr = month.toString().padLeft(2, '0');
-    final startRange = '$year-$monthStr-01';
-    
-    final nextMonthDate = DateTime(year, month + 1, 1);
-    final nextMonthStr = nextMonthDate.month.toString().padLeft(2, '0');
-    final nextYearStr = nextMonthDate.year.toString();
-    final endRange = '$nextYearStr-$nextMonthStr-01';
+    final startRange = start.toIso8601String();
+    final endRange = end.toIso8601String();
 
     final maps = await db.rawQuery('''
       SELECT 
@@ -100,7 +84,10 @@ class ManagementRepositoryImpl implements ManagementRepository {
         p.nome as produto_nome,
         v.quantidade,
         v.totalvenda,
-        v.desconto
+        v.desconto,
+        v.is_prazo,
+        v.parcelas,
+        v.valor_unitario
       FROM vendas v
       INNER JOIN produtos p ON v.idproduto = p.id
       WHERE v.compra_id = ?
